@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Data\1\*.cs" />
+    <Compile Remove="Data\2\*.cs" />
+    <Compile Remove="Data\3\*.cs" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Content Include="Data\1\*" />
+    <Content Include="Data\2\*" />
+    <Content Include="Data\3\*" />
+    <Content Include="Data\__example\Class.cs" />
+    <Content Include="Data\__example\Repository.cs" />
+    <Content Include="Data\__example\Sql.psql" />
+    <Content Include="Data\__example\template.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
+    <PackageReference Include="xunit" Version="2.3.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LazyElephant\LazyElephant.csproj" />
+  </ItemGroup>
+
+</Project>

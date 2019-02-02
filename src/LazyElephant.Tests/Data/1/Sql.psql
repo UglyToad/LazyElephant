@@ -1,0 +1,7 @@
+﻿CREATE TABLE public.task (
+    id UUID PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    created TIMESTAMP NOT NULL DEFAULT NOW(),
+    user_id UUID NOT NULL REFERENCES public.user(id)
+);

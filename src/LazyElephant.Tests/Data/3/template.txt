@@ -1,0 +1,5 @@
+﻿sales.customer { id Guid pk ag,
+    name string uq,
+    createdDate DateTime df [now],
+    age int null,
+}

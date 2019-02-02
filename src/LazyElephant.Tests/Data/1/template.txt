@@ -1,0 +1,7 @@
+﻿task {
+id guid pk,
+name string [250],
+description string null,
+created datetime df [now],
+userId guid fk user.id
+}
