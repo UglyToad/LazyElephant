@@ -66,6 +66,8 @@ namespace PostPig.DataAccess.Repositories
             {
                 var command = new NpgsqlCommand(@"DELETE FROM public.task WHERE id = @id;", connection);
 
+                command.Parameters.AddWithValue("id", id);
+
                 var result = await command.ExecuteNonQueryAsync();
 
                 return result > 0;
@@ -76,15 +78,14 @@ namespace PostPig.DataAccess.Repositories
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
-                task.Id = Guid.NewGuid();
-
-                var command = new NpgsqlCommand(@"INSERT INTO public.task(id, name, description, user_id)
-                VALUES(@id, @name, @description, @userId)
+                var command = new NpgsqlCommand(@"INSERT INTO public.task(id, name, description, created, user_id)
+                VALUES (@id, @name, @description, @created, @userId)
                 RETURNING id, name, description, created, user_id;", connection);
 
                 command.Parameters.AddWithValue("id", task.Id);
                 command.Parameters.AddWithValue("name", task.Name);
                 command.Parameters.AddWithValue("description", task.Description);
+                command.Parameters.AddWithValue("created", task.Created);
                 command.Parameters.AddWithValue("userId", task.UserId);
 
                 using (var reader = await command.ExecuteReaderAsync())
@@ -114,7 +115,7 @@ namespace PostPig.DataAccess.Repositories
                 command.Parameters.AddWithValue("id", task.Id);
                 command.Parameters.AddWithValue("name", task.Name);
                 command.Parameters.AddWithValue("description", task.Description);
-                command.Parameters.AddWithValue("created", task.Description);
+                command.Parameters.AddWithValue("created", task.Created);
                 command.Parameters.AddWithValue("userId", task.UserId);
 
                 using (var reader = await command.ExecuteReaderAsync())

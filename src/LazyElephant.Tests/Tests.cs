@@ -14,7 +14,7 @@ namespace LazyElephant.Tests
         [MemberData(nameof(InlineTestData))]
         public void GeneratesCorrectResult(string input, string expected, string cSharpExpected)
         {
-            var result = Generator.Generate(input, "PostPig.DataAccess.Florp", new GeneratorOptions());
+            var result = Generator.Generate(input, new GeneratorOptions("PostPig.DataAccess.Florp", "PostPig.DataAccess.Repositories"));
 
             Assert.NotNull(result.Sql);
 
@@ -26,13 +26,13 @@ namespace LazyElephant.Tests
         [MemberData(nameof(FileTestData))]
         public void GeneratesFullResult(string input, string expectedSql, string expectedClass, string expectedRepository)
         {
-            var result = Generator.Generate(input, "PostPig.DataAccess.Florp", new GeneratorOptions());
+            var result = Generator.Generate(input, new GeneratorOptions("PostPig.DataAccess.Florp", "PostPig.DataAccess.Repositories"));
 
             Assert.NotNull(result.Sql);
 
             Assert.Equal(LineEndingSingle(expectedSql), LineEndingSingle(result.Sql));
             Assert.Equal(LineEndingSingle(expectedClass), LineEndingSingle(result.Class));
-            Assert.NotNull(expectedRepository);
+            Assert.Equal(LineEndingSingle(expectedRepository), LineEndingSingle(result.Repository));
         }
 
         private static string LineEndingSingle(string input)

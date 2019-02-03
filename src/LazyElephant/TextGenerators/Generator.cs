@@ -3,20 +3,38 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
+    using TextGenerators;
     using Tokens;
 
     public class GeneratorOptions
     {
         public int TabSize { get; set; } = 4;
+
         public bool UseTabs { get; set; }
+
+        public string RepositorySuffix { get; set; } = "Repository";
+
+        public bool UseUnderscore { get; set; }
+
+        public string ClassNamespace { get; }
+
+        public string RepositoryNamespace { get; }
+
+        public GeneratorOptions(string classNamespace, string repositoryNamespace = null)
+        {
+            ClassNamespace = classNamespace ?? throw new ArgumentNullException(nameof(classNamespace));
+            RepositoryNamespace = repositoryNamespace ?? ClassNamespace;
+        }
     }
 
     public static class Generator
     {
         private static readonly Tokenizer Tokenizer = new Tokenizer();
+        private static readonly SqlGenerator SqlGenerator = new SqlGenerator();
+        private static readonly ClassGenerator ClassGenerator = new ClassGenerator();
+        private static readonly RepositoryClassGenerator RepositoryClassGenerator = new RepositoryClassGenerator();
 
-        public static Result Generate(string input, string @namespace, GeneratorOptions options)
+        public static Result Generate(string input, GeneratorOptions options)
         {
             var expectsTable = true;
             var nextMustOpenTable = false;
@@ -227,159 +245,16 @@
                 precedingToken = token;
             }
 
-            var sql = GetSql(tables, options);
+            var sql = SqlGenerator.GetSql(tables, options);
+            var classes = ClassGenerator.GetClasses(sql.Values.ToList(), options);
+            var repos = RepositoryClassGenerator.GetRepositories(classes.Values.ToList(), options);
 
             return new Result
             {
-                Sql = sql,
-                Class = GetCSharpClass(tables, @namespace, options)
+                Sql = sql[tables[0]].Sql,
+                Class = classes[tables[0]].Class,
+                Repository = repos[tables[0]].Repository
             };
-        }
-
-        private static string GetSql(IReadOnlyList<Table> tables, GeneratorOptions options)
-        {
-            var builder = new StringBuilder();
-
-            for (var i = 0; i < tables.Count; i++)
-            {
-                var table = tables[i];
-                if (i < tables.Count - 1)
-                {
-                    builder.AppendLine().AppendLine();
-                }
-
-                var schema = table.Schema ?? "public";
-                builder.Append($"CREATE TABLE {schema.ToLowerInvariant()}.{table.Name.ToLowerInvariant()}").Append(" (").AppendLine();
-
-                for (var c = 0; c < table.Columns.Count; c++)
-                {
-                    var column = table.Columns[c];
-                    builder.AddTab(options).Append(Column.GetPostgresName(column.Name))
-                        .Append(' ');
-
-                    if (column.AutogeneratePrimaryKey && column.DataType.Type == typeof(int))
-                    {
-                        builder.Append("SERIAL");
-                    }
-                    else
-                    {
-                        builder.Append(column.DataType.PostgresType.ToUpperInvariant());
-                    }
-
-                    if (column.IsPrimaryKey)
-                    {
-                        builder.Append(" PRIMARY KEY");
-                    }
-
-                    if (column.AutogeneratePrimaryKey)
-                    {
-                        if (column.DataType.Type == typeof(Guid))
-                        {
-                            builder.Append(' ')
-                                .Append("DEFAULT uuid_generate_v4()");
-                        }
-                        else if (column.DataType.Type != typeof(int))
-                        {
-                            throw new NotSupportedException($"Generating default primary key values is unsupported for data type {column.DataType.Type.Name} in table: {column}.");
-                        }
-                    }
-
-                    // primary key is implicitly not null
-                    if (!column.IsNullable && !column.IsPrimaryKey)
-                    {
-                        builder.Append(" NOT NULL");
-                    }
-
-                    if (column.IsForeignKey)
-                    {
-                        builder.Append(" REFERENCES ")
-                            // TODO: real schema here please
-                            .Append($"public.{column.ForeignKey.Table.ToLowerInvariant()}(").Append(Column.GetPostgresName(column.ForeignKey.Column))
-                            .Append(')');
-                    }
-
-                    if (column.HasDefault)
-                    {
-                        builder.Append(" DEFAULT ")
-                            .Append(column.GetDefaultValueExpression());
-                    }
-
-                    if (column.IsUnique && !column.IsPrimaryKey)
-                    {
-                        builder.Append(" UNIQUE");
-                    }
-
-                    if (c < table.Columns.Count - 1)
-                    {
-                        builder.Append(',');
-                    }
-
-                    builder.Append("\r\n");
-                }
-
-                builder.Append(')').Append(';');
-            }
-
-            return builder.ToString();
-        }
-
-        private static string GetCSharpClass(IReadOnlyList<Table> tables, string @namespace, GeneratorOptions options)
-        {
-            var builder = new StringBuilder();
-            for (var i = 0; i < tables.Count; i++)
-            {
-                var table = tables[i];
-                var usingSystem = table.Columns.Any(x => x.DataType.Type == typeof(Guid) || x.DataType.Type == typeof(DateTime) || x.DataType.Type == typeof(TimeSpan));
-
-                if (usingSystem)
-                {
-                    builder.Append("using System;").AppendLine().AppendLine();
-                }
-
-                builder.Append("namespace ").Append(@namespace).AppendLine()
-                        .Append('{').AppendLine()
-                        .AddTab(options).Append("public class ").Append(Column.GetCSharpName(table.Name)).AppendLine()
-                        .AddTab(options)
-                    .Append('{').AppendLine();
-
-                for (var j = 0; j < table.Columns.Count; j++)
-                {
-                    var col = table.Columns[j];
-
-                    builder.AddTab(options, 2).Append("public ").Append(col.DataType.CSharpTypeWithNullable(col))
-                        .Append(" ")
-                        .Append(Column.GetCSharpName(col.Name)).Append(" { get; set; }").AppendLine();
-
-                    if (j < table.Columns.Count - 1)
-                    {
-                        builder.AppendLine();
-                    }
-                }
-
-                builder.AddTab(options).Append('}').AppendLine().Append('}');
-            }
-
-            return builder.ToString();
-        }
-    }
-
-    internal static class BuilderExtensions
-    {
-        public static StringBuilder AddTab(this StringBuilder builder, GeneratorOptions opts, int count = 1)
-        {
-            for (var i = 0; i < count; i++)
-            {
-                if (opts.UseTabs)
-                {
-                    builder.Append('\t');
-                }
-                else
-                {
-                    builder.Append(' ', opts.TabSize);
-                }
-            }
-
-            return builder;
         }
     }
 }

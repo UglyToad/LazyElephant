@@ -7,21 +7,24 @@ using PostPig.DataAccess.Florp;
 
 namespace PostPig.DataAccess.Repositories
 {
-    public class TaskRepository
+    public class CustomerRepository
     {
         private readonly string connectionString;
 
-        public TaskRepository(string connectionString)
+        public CustomerRepository(string connectionString)
         {
             this.connectionString = connectionString;
         }
 
-        public async Task<IEnumerable<PostPig.DataAccess.Florp.Task>> GetAll()
+        public async Task<IEnumerable<Customer>> GetAll()
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
-                var command = new NpgsqlCommand(@"SELECT id
-                FROM public.task;", connection);
+                var command = new NpgsqlCommand(@"SELECT id,
+                name,
+                created_date,
+                age
+                FROM sales.customer;", connection);
 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
@@ -30,12 +33,15 @@ namespace PostPig.DataAccess.Repositories
             }
         }
 
-        public async Task<PostPig.DataAccess.Florp.Task> Get(Guid id)
+        public async Task<Customer> Get(Guid id)
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
-                var command = new NpgsqlCommand(@"SELECT id
-                FROM public.task
+                var command = new NpgsqlCommand(@"SELECT id,
+                name,
+                created_date,
+                age
+                FROM sales.customer
                 WHERE id = @id;", connection);
 
                 command.Parameters.AddWithValue("id", id);
@@ -56,7 +62,9 @@ namespace PostPig.DataAccess.Repositories
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
-                var command = new NpgsqlCommand(@"DELETE FROM public.task WHERE id = @id;", connection);
+                var command = new NpgsqlCommand(@"DELETE FROM sales.customer WHERE id = @id;", connection);
+
+                command.Parameters.AddWithValue("id", id);
 
                 var result = await command.ExecuteNonQueryAsync();
 
@@ -64,13 +72,17 @@ namespace PostPig.DataAccess.Repositories
             }
         }
 
-        public async Task<PostPig.DataAccess.Florp.Task> Create(PostPig.DataAccess.Florp.Task task)
+        public async Task<Customer> Create(Customer customer)
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
-                var command = new NpgsqlCommand(@"INSERT INTO public.task(id)
-                VALUES(DEFAULT)
-                RETURNING id;", connection);
+                var command = new NpgsqlCommand(@"INSERT INTO sales.customer(name, created_date, age)
+                VALUES (@name, @createdDate, @age)
+                RETURNING id, name, created_date, age;", connection);
+
+                command.Parameters.AddWithValue("name", customer.Name);
+                command.Parameters.AddWithValue("createdDate", customer.CreatedDate);
+                command.Parameters.AddWithValue("age", customer.Age);
                 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
@@ -84,15 +96,35 @@ namespace PostPig.DataAccess.Repositories
             }
         }
 
-        public async Task<PostPig.DataAccess.Florp.Task> Update(PostPig.DataAccess.Florp.Task task)
+        public async Task<Customer> Update(Customer customer)
         {
             using (var connection = new NpgsqlConnection(connectionString))
             {
-                return task;
+                var command = new NpgsqlCommand(@"UPDATE sales.customer
+                SET name = @name,
+                created_date = @createdDate,
+                age = @age
+                WHERE id = @id
+                RETURNING id, name, created_date, age;", connection);
+
+                command.Parameters.AddWithValue("id", customer.Id);
+                command.Parameters.AddWithValue("name", customer.Name);
+                command.Parameters.AddWithValue("createdDate", customer.CreatedDate);
+                command.Parameters.AddWithValue("age", customer.Age);
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        return GetCurrent(reader);
+                    }
+                }
+
+                return null;
             }
         }
 
-        private static IEnumerable<PostPig.DataAccess.Florp.Task> Enumerate(DbDataReader reader)
+        private static IEnumerable<Customer> Enumerate(DbDataReader reader)
         {
             while (reader.Read())
             {
@@ -100,11 +132,14 @@ namespace PostPig.DataAccess.Repositories
             }
         }
 
-        private static PostPig.DataAccess.Florp.Task GetCurrent(DbDataReader reader)
+        private static Customer GetCurrent(DbDataReader reader)
         {
-            return new PostPig.DataAccess.Florp.Task
+            return new Customer
             {
-                Id = reader.GetGuid(0)
+                Id = reader.GetGuid(0),
+                Name = reader.GetString(1),
+                CreatedDate = reader.GetDateTime(2),
+                Age = reader.IsDBNull(3) ? default(int?) : reader.GetInt32(3)
             };
         }
     }

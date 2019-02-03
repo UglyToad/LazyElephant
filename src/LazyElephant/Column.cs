@@ -155,7 +155,7 @@
             return builder.ToString();
         }
 
-        public static string GetCSharpName(string name)
+        public static string GetCSharpName(string name, bool firstLower = false)
         {
             var builder = new StringBuilder();
 
@@ -166,7 +166,7 @@
                 var c = name[i];
                 if (!usedFirst && char.IsLetter(c))
                 {
-                    builder.Append(char.ToUpperInvariant(c));
+                    builder.Append(firstLower ? char.ToLowerInvariant(c) : char.ToUpperInvariant(c));
                     usedFirst = true;
                     continue;
                 }
