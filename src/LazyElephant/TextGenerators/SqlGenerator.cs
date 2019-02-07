@@ -63,8 +63,7 @@
                     if (column.IsForeignKey)
                     {
                         builder.Append(" REFERENCES ")
-                            // TODO: real schema here please
-                            .Append($"public.{column.ForeignKey.Table.ToLowerInvariant()}(").Append(Column.GetPostgresName(column.ForeignKey.Column))
+                            .Append($"{column.ForeignKey.Schema.ToLowerInvariant()}.{column.ForeignKey.Table.ToLowerInvariant()}(").Append(Column.GetPostgresName(column.ForeignKey.Column))
                             .Append(')');
 
                         // TODO: add dependency

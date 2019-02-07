@@ -58,7 +58,7 @@
                         yield return CloseTableToken.Value;
                         break;
                     default:
-                        var result = ReadTillEnd(input, ref i);
+                        var result = ReadTillEnd(input, ref i, out var bracketed);
                         if (Tokens.TryGetValue(result, out var factory))
                         {
                             yield return factory();
@@ -66,6 +66,20 @@
                         }
 
                         var dotIndex = result.IndexOf('.');
+
+                        if (!string.IsNullOrEmpty(bracketed))
+                        {
+                            if (dotIndex >= 0)
+                            {
+                                var schema = result.Substring(0, dotIndex);
+                                var table = result.Substring(dotIndex + 1);
+                                yield return new ForeignKeyDetailsToken(table, bracketed, schema);
+                                break;
+                            }
+
+                            yield return new ForeignKeyDetailsToken(result, bracketed);
+                            break;
+                        }
 
                         if (dotIndex >= 0)
                         {
@@ -90,8 +104,10 @@
             return c == '\n' || c == '\r';
         }
 
-        private static string ReadTillEnd(string input, ref int i)
+        private static string ReadTillEnd(string input, ref int i, out string bracketedContent)
         {
+            bracketedContent = null;
+
             if (i == input.Length - 1)
             {
                 return input[i].ToString();
@@ -100,6 +116,8 @@
             var c = input[i];
             var precedingDots = 0;
             var builder = new StringBuilder().Append(input[i]);
+            var bracketedBuilder = new StringBuilder();
+            var isBracketed = false;
 
             while (!char.IsWhiteSpace(c) && i < input.Length - 1)
             {
@@ -135,10 +153,30 @@
                                 return builder.ToString();
                             }
 
+                            if (c == '(')
+                            {
+                                isBracketed = true;
+                                i++;
+                                continue;
+                            }
+
+                            if (isBracketed && c == ')')
+                            {
+                                bracketedContent = bracketedBuilder.ToString();
+                                return builder.ToString();
+                            }
+
                             throw new InvalidOperationException($"Invalid character '{c}' at position {i + 1}.");
                         }
 
-                        builder.Append(c);
+                        if (isBracketed)
+                        {
+                            bracketedBuilder.Append(c);
+                        }
+                        else
+                        {
+                            builder.Append(c);
+                        }
                         break;
                 }
 

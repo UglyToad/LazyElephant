@@ -16,4 +16,18 @@
             return $"Name: {Name}";
         }
     }
+
+    internal class ForeignKeyDetailsToken : IElephantToken
+    {
+        public string Table { get; }
+        public string Column { get; }
+        public string Schema { get; }
+
+        public ForeignKeyDetailsToken(string table, string column, string schema = "public")
+        {
+            Column = column;
+            Schema = schema;
+            Table = table;
+        }
+    }
 }

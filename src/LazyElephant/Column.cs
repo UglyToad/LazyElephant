@@ -22,8 +22,8 @@
 
         public bool IsNullable { get; set; }
 
-        private ColumnTableReferenceToken foreignKey;
-        public ColumnTableReferenceToken ForeignKey
+        private ForeignKeyDetailsToken foreignKey;
+        public ForeignKeyDetailsToken ForeignKey
         {
             get => foreignKey;
             set

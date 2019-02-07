@@ -35,6 +35,31 @@ namespace LazyElephant.Tests
             Assert.Equal(LineEndingSingle(expectedRepository), LineEndingSingle(result.Repository));
         }
 
+        [Fact]
+        public void DogFood()
+        {
+            var input = @"
+company.listing {
+id guid pk, name string, type string null, number string,
+sicCode string null,
+creationDate string null,
+description string null,
+postcode string null, region string null, locality string null, addressLine1 string null}
+company.completedCombination { id guid pk, combination string}
+company.website { id guid pk, companyId guid fk company.listing(id), url string, lastVisited DateTime null
+}
+training.session { id int pk ag, index int, currentCompanyId guid fk company.listing(id) },
+training.tagged { id guid pk, name string, url string, html string, approved bool },
+company.endpoint { id guid pk, url string, company_id guid fk company.listing(id) },
+
+company.polled { id guid pk, companyId guid fk company.listing(id) },
+training.shortlist { id guid pk, endpoint_id guid, url string, status int }
+";
+            var result = Generator.Generate(input, new GeneratorOptions("CompanyDatabase"));
+
+            Assert.NotNull(result.Sql);
+        }
+
         private static string LineEndingSingle(string input)
         {
             input = input.Replace("\r\n", "\n");

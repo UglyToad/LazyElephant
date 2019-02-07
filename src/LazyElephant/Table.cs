@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
 
     internal class Table
     {
@@ -20,7 +19,24 @@
 
         public Column GetPrimaryKey()
         {
-            return Columns.SingleOrDefault(x => x.IsPrimaryKey);
+            var col = default(Column);
+
+            foreach (var column in Columns)
+            {
+                if (!column.IsPrimaryKey)
+                {
+                    continue;
+                }
+
+                if (col != null)
+                {
+                    throw new InvalidOperationException($"Both {col.Name} and {column.Name} were primary keys in the table {Name}.");
+                }
+
+                col = column;
+            }
+
+            return col;
         }
     }
 }

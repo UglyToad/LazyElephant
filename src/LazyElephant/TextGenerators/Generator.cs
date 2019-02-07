@@ -69,7 +69,7 @@
                         throw new InvalidOperationException("Protected keyword 'fk' used outside column context.");
                     }
 
-                    if (token is ColumnTableReferenceToken foreignTable)
+                    if (token is ForeignKeyDetailsToken foreignTable)
                     {
                         currentColumn.ForeignKey = foreignTable;
                     }
@@ -235,10 +235,12 @@
                         if (currentColumn != null)
                         {
                             columns.Add(currentColumn);
+                            currentColumn = null;
                         }
                         currentTable.Columns = new List<Column>(columns);
                         tables.Add(currentTable);
                         currentTable = null;
+                        expectsTable = true;
                         break;
                 }
 
