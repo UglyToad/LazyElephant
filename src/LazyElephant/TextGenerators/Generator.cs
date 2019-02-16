@@ -240,6 +240,7 @@
                         currentTable.Columns = new List<Column>(columns);
                         tables.Add(currentTable);
                         currentTable = null;
+                        columns = new List<Column>();
                         expectsTable = true;
                         break;
                 }
