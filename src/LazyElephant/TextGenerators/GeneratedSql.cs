@@ -37,11 +37,11 @@
             GetSelectAllColumns(builder);
 
             var pkCol = Table.GetPrimaryKey();
-            var pk = Column.GetPostgresName(Table.GetPrimaryKey().Name);
+            var pk = Table.PrimaryKeyName;
 
             builder.AppendLine().Append("WHERE ")
                 .Append(pk)
-                .Append(" = @").Append(Column.GetCSharpName(pkCol.Name, true))
+                .Append(" = @").Append(pkCol.CSharpStyleNameLower)
                 .Append(";");
 
             return builder.ToString();
@@ -50,14 +50,14 @@
         public string GetDeleteByPk()
         {
             var pkCol = Table.GetPrimaryKey();
-            var pk = Column.GetPostgresName(Table.GetPrimaryKey().Name);
+            var pk = Table.GetPrimaryKey().Name;
 
             var builder = new StringBuilder("DELETE FROM ");
 
             AddQualifiedTableName(builder);
                 
             builder.Append(" WHERE ")
-                .Append(pk).Append(" = @").Append(Column.GetCSharpName(pkCol.Name, true)).Append(';');
+                .Append(pk).Append(" = @").Append(pkCol.CSharpStyleNameLower).Append(';');
 
             return builder.ToString();
         }
@@ -69,7 +69,7 @@
             for (var i = 0; i < Table.Columns.Count; i++)
             {
                 var column = Table.Columns[i];
-                builder.Append(Column.GetPostgresName(column.Name));
+                builder.Append(column.Name);
 
                 if (i < Table.Columns.Count - 1)
                 {
@@ -99,7 +99,7 @@
             {
                 var column = Table.Columns[i];
 
-                var par = Column.GetPostgresName(column.Name);
+                var par = column.Name;
 
                 columns.Add(par);
 
@@ -109,7 +109,7 @@
                 }
 
                 builder.Append(par);
-                parameters.Add(Column.GetCSharpName(column.Name, true));
+                parameters.Add(column.CSharpStyleNameLower);
 
                 if (i < Table.Columns.Count - 1)
                 {
@@ -150,7 +150,7 @@
 
         private StringBuilder AddQualifiedTableName(StringBuilder builder)
         {
-            builder.Append(Table.Schema ?? "public").Append('.').Append(Table.Name);
+            builder.Append(Table.Name.Schema ?? "public").Append('.').Append(Table.Name.Table);
 
             return builder;
         }
@@ -169,7 +169,7 @@
             {
                 var column = Table.Columns[i];
 
-                var col = Column.GetPostgresName(column.Name);
+                var col = column.Name;
                 columns.Add(col);
 
                 if (column.IsPrimaryKey)
@@ -177,7 +177,7 @@
                     continue;
                 }
 
-                var parameter = Column.GetCSharpName(column.Name, true);
+                var parameter = column.CSharpStyleNameLower;
                 parameters.Add(parameter);
 
                 builder.Append(col).Append(" = @").Append(parameter);
@@ -189,8 +189,8 @@
             }
 
             var pk = Table.GetPrimaryKey();
-            var pkName = Column.GetPostgresName(pk.Name);
-            var pkParam = Column.GetCSharpName(pk.Name, true);
+            var pkName = pk.Name;
+            var pkParam = pk.CSharpStyleNameLower;
             parameters.Insert(0, pkParam);
 
             builder.AppendLine().Append("WHERE ").Append(pkName).Append(" = @").AppendLine(pkParam);

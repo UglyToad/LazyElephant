@@ -6,11 +6,11 @@
 
     internal class SqlGenerator
     {
-        public IReadOnlyDictionary<Table, GeneratedSql> GetSql(IReadOnlyList<Table> tables, GeneratorOptions options)
+        public IReadOnlyList<GeneratedSql> GetSql(IReadOnlyList<Table> tables, GeneratorOptions options)
         {
             var builder = new StringBuilder();
 
-            var result = new Dictionary<Table, GeneratedSql>();
+            var result = new List<GeneratedSql>();
 
             foreach (var table in tables)
             {
@@ -18,13 +18,13 @@
 
                 var dependencies = new List<Table>();
                 
-                var schema = table.Schema ?? "public";
-                builder.Append($"CREATE TABLE {schema.ToLowerInvariant()}.{table.Name.ToLowerInvariant()}").Append(" (").AppendLine();
+                var schema = table.Name.Schema;
+                builder.Append($"CREATE TABLE {schema}.{table.Name.Table}").Append(" (").AppendLine();
 
                 for (var c = 0; c < table.Columns.Count; c++)
                 {
                     var column = table.Columns[c];
-                    builder.AddTab(options).Append(Column.GetPostgresName(column.Name))
+                    builder.AddTab(options).Append(column.Name.ToPostgresStyle())
                         .Append(' ');
 
                     if (column.AutogeneratePrimaryKey && column.DataType.Type == typeof(int))
@@ -63,7 +63,7 @@
                     if (column.IsForeignKey)
                     {
                         builder.Append(" REFERENCES ")
-                            .Append($"{column.ForeignKey.Schema.ToLowerInvariant()}.{column.ForeignKey.Table.ToLowerInvariant()}(").Append(Column.GetPostgresName(column.ForeignKey.Column))
+                            .Append($"{column.ForeignKey.Schema.ToLowerInvariant()}.{column.ForeignKey.Table.ToLowerInvariant()}(").Append(column.ForeignKey.Column.ToPostgresStyle())
                             .Append(')');
 
                         // TODO: add dependency
@@ -90,7 +90,7 @@
 
                 builder.Append(')').Append(';');
 
-                result[table] = new GeneratedSql(table, builder.ToString(), dependencies);
+                result.Add(new GeneratedSql(table, builder.ToString(), dependencies));
             }
 
             return result;

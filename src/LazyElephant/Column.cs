@@ -4,7 +4,39 @@
     using System.Text;
     using Tokens;
 
-    internal class Column
+    internal static class StringHandler
+    {
+        public static string ToPostgresStyle(this string input)
+        {
+            if (input == null)
+            {
+                throw new ArgumentNullException(nameof(input));
+            }
+
+            var builder = new StringBuilder();
+            for (var i = 0; i < input.Length; i++)
+            {
+                var c = input[i];
+                if (char.IsUpper(c))
+                {
+                    if (i > 0)
+                    {
+                        builder.Append('_');
+                    }
+
+                    builder.Append(char.ToLowerInvariant(c));
+                }
+                else
+                {
+                    builder.Append(c);
+                }
+            }
+
+            return builder.ToString();
+        }
+    }
+
+    internal class ColumnPlaceholder
     {
         public string Name { get; set; }
 
@@ -44,6 +76,93 @@
         {
             var extra = IsPrimaryKey ? "PK" : IsForeignKey ? "FK" : IsNullable ? "NN" : string.Empty;
             return $"{Name} {DataType.Type.Name}{extra}";
+        }
+
+        public static string GetCSharpName(string name, bool firstLower = false)
+        {
+            var builder = new StringBuilder();
+
+            var usedFirst = false;
+            var precedingWasUnderscore = false;
+            for (var i = 0; i < name.Length; i++)
+            {
+                var c = name[i];
+                if (!usedFirst && char.IsLetter(c))
+                {
+                    builder.Append(firstLower ? char.ToLowerInvariant(c) : char.ToUpperInvariant(c));
+                    usedFirst = true;
+                    continue;
+                }
+
+                if (char.IsLetterOrDigit(c))
+                {
+                    builder.Append(precedingWasUnderscore ? char.ToUpperInvariant(c) : c);
+                }
+
+                if (c == '_')
+                {
+                    precedingWasUnderscore = true;
+                }
+                else
+                {
+                    precedingWasUnderscore = false;
+                }
+            }
+
+            return builder.ToString();
+        }
+    }
+
+    internal class Column
+    {
+        public string Name { get; }
+
+        public string CSharpStyleName { get;}
+
+        public string CSharpStyleNameLower { get; }
+
+        public DataTypeToken DataType { get; }
+
+        public ValueToken DefaultValue { get; }
+
+        public bool IsForeignKey => ForeignKey != null;
+
+        public bool IsPrimaryKey { get; }
+
+        public bool AutogeneratePrimaryKey { get; }
+
+        public bool HasDefault => DefaultValue != null;
+
+        public bool IsNullable { get; }
+
+        public ForeignKeyDetailsToken ForeignKey { get; }
+        
+        public int? MaxLength { get; }
+
+        public bool IsUnique { get; }
+
+        public Column(string name, DataTypeToken dataType, ValueToken defaultValue, bool isPrimaryKey, bool autogeneratePrimaryKey, 
+            bool isNullable, 
+            ForeignKeyDetailsToken foreignKey, 
+            int? maxLength, 
+            bool isUnique)
+        {
+            if (foreignKey != null && isPrimaryKey)
+            {
+                throw new ArgumentException($"A column cannot be both a primary and foreign key. Column: {Name}.");   
+            }
+
+            Name = name?.ToPostgresStyle() ?? throw new ArgumentNullException(nameof(name));
+            CSharpStyleName = ColumnPlaceholder.GetCSharpName(name);
+            CSharpStyleNameLower = ColumnPlaceholder.GetCSharpName(name, true);
+            DataType = dataType ?? throw new ArgumentNullException(nameof(dataType));
+            DefaultValue = defaultValue;
+            IsPrimaryKey = isPrimaryKey;
+            AutogeneratePrimaryKey = autogeneratePrimaryKey;
+            IsNullable = isNullable;
+            ForeignKey = foreignKey;
+            MaxLength = maxLength;
+            IsUnique = isUnique;
         }
 
         public string GetDefaultValueExpression()
@@ -129,64 +248,6 @@
             }
 
             throw new NotImplementedException($"Not implemented for value '{DefaultValue.Value}' on type '{DataType.Type.Name}'.");
-        }
-
-        public static string GetPostgresName(string name)
-        {
-            var builder = new StringBuilder();
-            for (var i = 0; i < name.Length; i++)
-            {
-                var c = name[i];
-                if (char.IsUpper(c))
-                {
-                    if (i > 0)
-                    {
-                        builder.Append('_');
-                    }
-
-                    builder.Append(char.ToLowerInvariant(c));
-                }
-                else
-                {
-                    builder.Append(c);
-                }
-            }
-
-            return builder.ToString();
-        }
-
-        public static string GetCSharpName(string name, bool firstLower = false)
-        {
-            var builder = new StringBuilder();
-
-            var usedFirst = false;
-            var precedingWasUnderscore = false;
-            for (var i = 0; i < name.Length; i++)
-            {
-                var c = name[i];
-                if (!usedFirst && char.IsLetter(c))
-                {
-                    builder.Append(firstLower ? char.ToLowerInvariant(c) : char.ToUpperInvariant(c));
-                    usedFirst = true;
-                    continue;
-                }
-
-                if (char.IsLetterOrDigit(c))
-                {
-                    builder.Append(precedingWasUnderscore ? char.ToUpperInvariant(c) : c);
-                }
-
-                if (c == '_')
-                {
-                    precedingWasUnderscore = true;
-                }
-                else
-                {
-                    precedingWasUnderscore = false;
-                }
-            }
-
-            return builder.ToString();
         }
     }
 }

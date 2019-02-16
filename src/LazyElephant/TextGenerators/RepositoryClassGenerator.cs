@@ -21,11 +21,11 @@
             "Npgsql"
         };
 
-        public IReadOnlyDictionary<Table, GeneratedRepository> GetRepositories(IReadOnlyList<GeneratedClass> classes, GeneratorOptions options)
+        public IReadOnlyList<GeneratedRepository> GetRepositories(IReadOnlyList<GeneratedClass> classes, GeneratorOptions options)
         {
             var builder = new StringBuilder();
 
-            var result = new Dictionary<Table, GeneratedRepository>();
+            var result = new List<GeneratedRepository>();
 
             var connectionUsing = "using (var connection = new NpgsqlConnection(" + (options.UseUnderscore ? "_connectionString" : "connectionString") + "))";
 
@@ -81,7 +81,7 @@
                         builder.AppendLine();
 
                         var pkCol = generatedClass.Table.GetPrimaryKey();
-                        var pkParamName = Column.GetCSharpName(pkCol.Name, true);
+                        var pkParamName = pkCol.CSharpStyleNameLower;
                         var argByPk = pkCol.DataType.CSharpType + " " + pkParamName;
 
                         using (var get = new GeneratedMethod(name, Get, argByPk, builder, options))
@@ -140,7 +140,7 @@
                         }
 
                         builder.AppendLine();
-                        var paramName = Column.GetCSharpName(generatedClass.Name, true);
+                        var paramName = ColumnPlaceholder.GetCSharpName(generatedClass.Name, true);
 
                         using (var create = new GeneratedMethod(name, Create, $"{name} {paramName}", builder, options))
                         {
@@ -159,7 +159,7 @@
                                 {
                                     builder.AddTab(options, 4).Append("command.Parameters.AddWithValue(\"")
                                     .Append(param)
-                                    .Append("\", ").Append($"{paramName}.{Column.GetCSharpName(param)}").AppendLine(");");
+                                    .Append("\", ").Append($"{paramName}.{ColumnPlaceholder.GetCSharpName(param)}").AppendLine(");");
                                 }
 
                                 builder.AppendLine();
@@ -196,7 +196,7 @@
                                 {
                                     builder.AddTab(options, 4).Append("command.Parameters.AddWithValue(\"")
                                         .Append(param)
-                                        .Append("\", ").Append($"{paramName}.{Column.GetCSharpName(param)}").AppendLine(");");
+                                        .Append("\", ").Append($"{paramName}.{ColumnPlaceholder.GetCSharpName(param)}").AppendLine(");");
                                 }
 
                                 builder.AppendLine();
@@ -235,7 +235,7 @@
                             {
                                 var col = generatedClass.Table.Columns[i];
 
-                                var colName = Column.GetCSharpName(col.Name);
+                                var colName = ColumnPlaceholder.GetCSharpName(col.Name);
 
                                 builder.AddTab(options, 4).Append(colName).Append(" = ")
                                     .Append(GetReaderQueryForColumn(col, i));
@@ -261,7 +261,7 @@
 
                 var repoCode = builder.ToString();
 
-                result[generatedClass.Table] = new GeneratedRepository(generatedClass.Table, repoCode, options.RepositoryNamespace);
+                result.Add(new GeneratedRepository(generatedClass.Table, repoCode, options.RepositoryNamespace));
 
                 builder.Clear();
             }

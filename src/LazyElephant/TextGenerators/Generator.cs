@@ -1,9 +1,8 @@
-﻿namespace LazyElephant
+﻿namespace LazyElephant.TextGenerators
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using TextGenerators;
     using Tokens;
 
     public class GeneratorOptions
@@ -20,10 +19,31 @@
 
         public string RepositoryNamespace { get; }
 
+        public string DefaultSchema { get; set; } = "public";
+
         public GeneratorOptions(string classNamespace, string repositoryNamespace = null)
         {
             ClassNamespace = classNamespace ?? throw new ArgumentNullException(nameof(classNamespace));
             RepositoryNamespace = repositoryNamespace ?? ClassNamespace;
+        }
+    }
+
+    public class GeneratedResult
+    {
+        public string ObjectName { get; }
+
+        public string Sql { get; }
+
+        public string CSharp { get; }
+
+        public string Repository { get; }
+
+        public GeneratedResult(string objectName, string sql, string cSharp, string repository)
+        {
+            ObjectName = objectName ?? throw new ArgumentNullException(nameof(objectName));
+            Sql = sql ?? throw new ArgumentNullException(nameof(sql));
+            CSharp = cSharp ?? throw new ArgumentNullException(nameof(cSharp));
+            Repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
     }
 
@@ -34,7 +54,30 @@
         private static readonly ClassGenerator ClassGenerator = new ClassGenerator();
         private static readonly RepositoryClassGenerator RepositoryClassGenerator = new RepositoryClassGenerator();
 
-        public static Result Generate(string input, GeneratorOptions options)
+        public static IReadOnlyList<GeneratedResult> Generate(IReadOnlyList<string> inputs, GeneratorOptions options)
+        {
+            var tables = new List<Table>();
+            foreach (var input in inputs)
+            {
+                var templateTables = Parse(input, options);
+                tables.AddRange(templateTables);
+            }
+            
+            var sql = SqlGenerator.GetSql(tables, options);
+            var classes = ClassGenerator.GetClasses(sql, options);
+            var repos = RepositoryClassGenerator.GetRepositories(classes, options);
+
+            var result = new List<GeneratedResult>();
+
+            for (int i = 0; i < sql.Count; i++)
+            {
+                result.Add(new GeneratedResult(tables[i].CSharpStyleName, sql[i].Sql, classes[i].Class, repos[i].Repository));
+            }
+            
+            return result;
+        }
+
+        private static IReadOnlyList<Table> Parse(string input, GeneratorOptions options)
         {
             var expectsTable = true;
             var nextMustOpenTable = false;
@@ -42,10 +85,10 @@
             var precedingToken = default(IElephantToken);
 
             var tables = new List<Table>();
-            var columns = new List<Column>();
-            
-            var currentTable = default(Table);
-            var currentColumn = default(Column);
+            var columns = new List<ColumnPlaceholder>();
+
+            var currentTable = default(TablePlaceholder);
+            var currentColumn = default(ColumnPlaceholder);
             foreach (var token in Tokenizer.Tokenize(input))
             {
                 if (nextMustOpenTable)
@@ -121,7 +164,7 @@
                     case NameToken name:
                         if (expectsTable)
                         {
-                            currentTable = new Table(name.Name);
+                            currentTable = new TablePlaceholder(name.Name);
                             expectsTable = false;
                             nextMustOpenTable = true;
                             break;
@@ -129,7 +172,7 @@
 
                         if (currentColumn == null)
                         {
-                            currentColumn = new Column
+                            currentColumn = new ColumnPlaceholder
                             {
                                 Name = name.Name
                             };
@@ -139,7 +182,7 @@
                     case ColumnTableReferenceToken columnTableReferenceToken:
                         if (expectsTable)
                         {
-                            currentTable = new Table(columnTableReferenceToken.Column, columnTableReferenceToken.Table);
+                            currentTable = new TablePlaceholder(columnTableReferenceToken.Column, columnTableReferenceToken.Table);
 
                             expectsTable = false;
                             nextMustOpenTable = true;
@@ -237,10 +280,13 @@
                             columns.Add(currentColumn);
                             currentColumn = null;
                         }
-                        currentTable.Columns = new List<Column>(columns);
-                        tables.Add(currentTable);
+
+                        var qualifiedName = new SchemaQualifiedName(currentTable.Schema ?? options.DefaultSchema ?? "public", currentTable.Name);
+                        var actualColumns = columns.Select(x => new Column(x.Name, x.DataType, x.DefaultValue, x.IsPrimaryKey, x.AutogeneratePrimaryKey,
+                            x.IsNullable, x.ForeignKey, x.MaxLength, x.IsUnique));
+                        tables.Add(new Table(qualifiedName, actualColumns));
                         currentTable = null;
-                        columns = new List<Column>();
+                        columns.Clear();
                         expectsTable = true;
                         break;
                 }
@@ -248,16 +294,7 @@
                 precedingToken = token;
             }
 
-            var sql = SqlGenerator.GetSql(tables, options);
-            var classes = ClassGenerator.GetClasses(sql.Values.ToList(), options);
-            var repos = RepositoryClassGenerator.GetRepositories(classes.Values.ToList(), options);
-
-            return new Result
-            {
-                Sql = sql[tables[0]].Sql,
-                Class = classes[tables[0]].Class,
-                Repository = repos[tables[0]].Repository
-            };
+            return tables;
         }
     }
 }

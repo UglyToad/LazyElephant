@@ -1,6 +1,7 @@
 ﻿namespace LazyElephant
 {
     using System.Text;
+    using TextGenerators;
 
     internal static class BuilderExtensions
     {

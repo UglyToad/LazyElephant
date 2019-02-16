@@ -4,6 +4,7 @@ namespace LazyElephant.Tests
     using System.Collections.Generic;
     using System.IO;
     using System.Text.RegularExpressions;
+    using TextGenerators;
     using Xunit;
 
     public class Tests
@@ -14,24 +15,24 @@ namespace LazyElephant.Tests
         [MemberData(nameof(InlineTestData))]
         public void GeneratesCorrectResult(string input, string expected, string cSharpExpected)
         {
-            var result = Generator.Generate(input, new GeneratorOptions("PostPig.DataAccess.Florp", "PostPig.DataAccess.Repositories"));
+            var result = Generator.Generate(new[] { input }, new GeneratorOptions("PostPig.DataAccess.Florp", "PostPig.DataAccess.Repositories"))[0];
 
             Assert.NotNull(result.Sql);
 
             Assert.Equal(LineEndingSingle(expected), LineEndingSingle(result.Sql));
-            Assert.Equal(LineEndingSingle(cSharpExpected), LineEndingSingle(result.Class));
+            Assert.Equal(LineEndingSingle(cSharpExpected), LineEndingSingle(result.CSharp));
         }
 
         [Theory]
         [MemberData(nameof(FileTestData))]
         public void GeneratesFullResult(string input, string expectedSql, string expectedClass, string expectedRepository)
         {
-            var result = Generator.Generate(input, new GeneratorOptions("PostPig.DataAccess.Florp", "PostPig.DataAccess.Repositories"));
+            var result = Generator.Generate(new[] { input }, new GeneratorOptions("PostPig.DataAccess.Florp", "PostPig.DataAccess.Repositories"))[0];
 
             Assert.NotNull(result.Sql);
 
             Assert.Equal(LineEndingSingle(expectedSql), LineEndingSingle(result.Sql));
-            Assert.Equal(LineEndingSingle(expectedClass), LineEndingSingle(result.Class));
+            Assert.Equal(LineEndingSingle(expectedClass), LineEndingSingle(result.CSharp));
             Assert.Equal(LineEndingSingle(expectedRepository), LineEndingSingle(result.Repository));
         }
 
@@ -55,9 +56,10 @@ company.endpoint { id guid pk, url string, company_id guid fk company.listing(id
 company.polled { id guid pk, companyId guid fk company.listing(id) },
 training.shortlist { id guid pk, endpoint_id guid, url string, status int }
 ";
-            var result = Generator.Generate(input, new GeneratorOptions("CompanyDatabase"));
+            var result = Generator.Generate(new []{ input }, new GeneratorOptions("CompanyDatabase"));
 
-            Assert.NotNull(result.Sql);
+            Assert.NotNull(result);
+            Assert.Equal(8, result.Count);
         }
 
         private static string LineEndingSingle(string input)

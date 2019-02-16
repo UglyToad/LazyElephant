@@ -7,11 +7,11 @@
 
     internal class ClassGenerator
     {
-        public IReadOnlyDictionary<Table, GeneratedClass> GetClasses(IReadOnlyList<GeneratedSql> tables, GeneratorOptions options)
+        public IReadOnlyList<GeneratedClass> GetClasses(IReadOnlyList<GeneratedSql> tables, GeneratorOptions options)
         {
             var builder = new StringBuilder();
 
-            var result = new Dictionary<Table, GeneratedClass>();
+            var result = new List<GeneratedClass>();
 
             for (var i = 0; i < tables.Count; i++)
             {
@@ -25,7 +25,7 @@
                     builder.Append("using System;").AppendLine().AppendLine();
                 }
 
-                var className = Column.GetCSharpName(table.Name);
+                var className = table.CSharpStyleName;
 
                 builder.Append("namespace ").Append(options.ClassNamespace).AppendLine()
                     .Append('{').AppendLine()
@@ -39,7 +39,7 @@
 
                     builder.AddTab(options, 2).Append("public ").Append(col.DataType.CSharpTypeWithNullable(col))
                         .Append(" ")
-                        .Append(Column.GetCSharpName(col.Name)).Append(" { get; set; }").AppendLine();
+                        .Append(col.CSharpStyleName).Append(" { get; set; }").AppendLine();
 
                     if (j < table.Columns.Count - 1)
                     {
@@ -49,7 +49,7 @@
 
                 builder.AddTab(options).Append('}').AppendLine().Append('}');
 
-                result[table] = new GeneratedClass(table, className, options.ClassNamespace, builder.ToString(), tables[i]);
+                result.Add(new GeneratedClass(table, className, options.ClassNamespace, builder.ToString(), tables[i]));
 
                 builder.Clear();
             }
