@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LazyElephant.Console": {
+      "commandName": "Project",
+      "commandLineArgs": "generate"
+    }
+  }
+}

@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2046
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LazyElephant", "LazyElephant\LazyElephant.csproj", "{674E2CB2-E99A-4FFB-BBC3-C7E56581C8F9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LazyElephant", "LazyElephant\LazyElephant.csproj", "{674E2CB2-E99A-4FFB-BBC3-C7E56581C8F9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LazyElephant.Tests", "LazyElephant.Tests\LazyElephant.Tests.csproj", "{5AA0BF4F-2F53-445D-959F-75CBF533E380}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LazyElephant.Tests", "LazyElephant.Tests\LazyElephant.Tests.csproj", "{5AA0BF4F-2F53-445D-959F-75CBF533E380}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LazyElephant.Console", "LazyElephant.Console\LazyElephant.Console.csproj", "{580E7EAA-3359-4B85-81C6-B766E9A9FAD0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{5AA0BF4F-2F53-445D-959F-75CBF533E380}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5AA0BF4F-2F53-445D-959F-75CBF533E380}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5AA0BF4F-2F53-445D-959F-75CBF533E380}.Release|Any CPU.Build.0 = Release|Any CPU
+		{580E7EAA-3359-4B85-81C6-B766E9A9FAD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{580E7EAA-3359-4B85-81C6-B766E9A9FAD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{580E7EAA-3359-4B85-81C6-B766E9A9FAD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{580E7EAA-3359-4B85-81C6-B766E9A9FAD0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
